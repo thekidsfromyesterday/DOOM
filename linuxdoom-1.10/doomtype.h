@@ -55,8 +55,16 @@ typedef unsigned char byte;
 #define MINLONG		((long)0x80000000)
 #endif
 
-
-
+// Definition of PACKEDATTR from Chocolate Doom
+#ifdef __GNUC__
+  #if defined(_WIN32) && !defined(__clang__)
+    #define PACKEDATTR __attribute__((packed,gcc_struct))
+  #else
+    #define PACKEDATTR __attribute__((packed))
+  #endif
+#else
+  #define PACKEDATTR
+#endif
 
 #endif
 //-----------------------------------------------------------------------------

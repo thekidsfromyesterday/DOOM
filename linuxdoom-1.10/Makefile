@@ -4,7 +4,7 @@
 #
 # $Log:$
 #
-CC=gcc-5  # gcc or g++
+CC=gcc  # gcc or g++
 
 CFLAGS=-g -Wall -DNORMALUNIX -DLINUX
 LDFLAGS=
