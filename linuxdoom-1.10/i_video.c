@@ -65,7 +65,8 @@ Colormap	X_cmap;
 Visual*		X_visual;
 GC		X_gc;
 XEvent		X_event;
-int		X_screen;
+int		X_screen_id;
+Screen *X_screen;
 XVisualInfo	X_visualinfo;
 XImage*		image;
 int		X_width;
@@ -193,7 +194,6 @@ boolean		shmFinished;
 
 void I_GetEvent(void)
 {
-
     event_t event;
 
     // put event-grabbing stuff in here
@@ -351,7 +351,6 @@ void I_UpdateNoBlit (void)
 //
 void I_FinishUpdate (void)
 {
-
     static int	lasttic;
     int		tics;
     int		i;
@@ -360,161 +359,159 @@ void I_FinishUpdate (void)
     // draws little dots on the bottom of the screen
     if (devparm)
     {
+        i = I_GetTime();
+        tics = i - lasttic;
+        lasttic = i;
+        if (tics > 20) tics = 20;
 
-	i = I_GetTime();
-	tics = i - lasttic;
-	lasttic = i;
-	if (tics > 20) tics = 20;
-
-	for (i=0 ; i<tics*2 ; i+=2)
-	    screens[0][ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
-	for ( ; i<20*2 ; i+=2)
-	    screens[0][ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
-    
+        for (i=0 ; i<tics*2 ; i+=2)
+            screens[0][ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
+        for ( ; i<20*2 ; i+=2)
+            screens[0][ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
     }
 
     // scales the screen size before blitting it
     if (multiply == 2)
     {
-	unsigned int *olineptrs[2];
-	unsigned int *ilineptr;
-	int x, y, i;
-	unsigned int twoopixels;
-	unsigned int twomoreopixels;
-	unsigned int fouripixels;
+        unsigned int *olineptrs[2];
+        unsigned int *ilineptr;
+        int x, y, i;
+        unsigned int twoopixels;
+        unsigned int twomoreopixels;
+        unsigned int fouripixels;
 
-	ilineptr = (unsigned int *) (screens[0]);
-	for (i=0 ; i<2 ; i++)
-	    olineptrs[i] = (unsigned int *) &image->data[i*X_width];
+        ilineptr = (unsigned int *) (screens[0]);
+        for (i=0 ; i<2 ; i++)
+            olineptrs[i] = (unsigned int *) &image->data[i*X_width];
 
-	y = SCREENHEIGHT;
-	while (y--)
-	{
-	    x = SCREENWIDTH;
-	    do
-	    {
-		fouripixels = *ilineptr++;
-		twoopixels =	(fouripixels & 0xff000000)
-		    |	((fouripixels>>8) & 0xffff00)
-		    |	((fouripixels>>16) & 0xff);
-		twomoreopixels =	((fouripixels<<16) & 0xff000000)
-		    |	((fouripixels<<8) & 0xffff00)
-		    |	(fouripixels & 0xff);
+        y = SCREENHEIGHT;
+        while (y--)
+        {
+            x = SCREENWIDTH;
+            do
+            {
+                fouripixels = *ilineptr++;
+                twoopixels =	(fouripixels & 0xff000000)
+                    |	((fouripixels>>8) & 0xffff00)
+                    |	((fouripixels>>16) & 0xff);
+                twomoreopixels =	((fouripixels<<16) & 0xff000000)
+                    |	((fouripixels<<8) & 0xffff00)
+                    |	(fouripixels & 0xff);
 #ifdef __BIG_ENDIAN__
-		*olineptrs[0]++ = twoopixels;
-		*olineptrs[1]++ = twoopixels;
-		*olineptrs[0]++ = twomoreopixels;
-		*olineptrs[1]++ = twomoreopixels;
+                *olineptrs[0]++ = twoopixels;
+                *olineptrs[1]++ = twoopixels;
+                *olineptrs[0]++ = twomoreopixels;
+                *olineptrs[1]++ = twomoreopixels;
 #else
-		*olineptrs[0]++ = twomoreopixels;
-		*olineptrs[1]++ = twomoreopixels;
-		*olineptrs[0]++ = twoopixels;
-		*olineptrs[1]++ = twoopixels;
+                *olineptrs[0]++ = twomoreopixels;
+                *olineptrs[1]++ = twomoreopixels;
+                *olineptrs[0]++ = twoopixels;
+                *olineptrs[1]++ = twoopixels;
 #endif
-	    } while (x-=4);
-	    olineptrs[0] += X_width/4;
-	    olineptrs[1] += X_width/4;
-	}
+            } while (x-=4);
+            olineptrs[0] += X_width/4;
+            olineptrs[1] += X_width/4;
+        }
 
     }
     else if (multiply == 3)
     {
-	unsigned int *olineptrs[3];
-	unsigned int *ilineptr;
-	int x, y, i;
-	unsigned int fouropixels[3];
-	unsigned int fouripixels;
+        unsigned int *olineptrs[3];
+        unsigned int *ilineptr;
+        int x, y, i;
+        unsigned int fouropixels[3];
+        unsigned int fouripixels;
 
-	ilineptr = (unsigned int *) (screens[0]);
-	for (i=0 ; i<3 ; i++)
-	    olineptrs[i] = (unsigned int *) &image->data[i*X_width];
+        ilineptr = (unsigned int *) (screens[0]);
+        for (i=0 ; i<3 ; i++)
+            olineptrs[i] = (unsigned int *) &image->data[i*X_width];
 
-	y = SCREENHEIGHT;
-	while (y--)
-	{
-	    x = SCREENWIDTH;
-	    do
-	    {
-		fouripixels = *ilineptr++;
-		fouropixels[0] = (fouripixels & 0xff000000)
-		    |	((fouripixels>>8) & 0xff0000)
-		    |	((fouripixels>>16) & 0xffff);
-		fouropixels[1] = ((fouripixels<<8) & 0xff000000)
-		    |	(fouripixels & 0xffff00)
-		    |	((fouripixels>>8) & 0xff);
-		fouropixels[2] = ((fouripixels<<16) & 0xffff0000)
-		    |	((fouripixels<<8) & 0xff00)
-		    |	(fouripixels & 0xff);
+        y = SCREENHEIGHT;
+        while (y--)
+        {
+            x = SCREENWIDTH;
+            do
+            {
+                fouripixels = *ilineptr++;
+                fouropixels[0] = (fouripixels & 0xff000000)
+                    |	((fouripixels>>8) & 0xff0000)
+                    |	((fouripixels>>16) & 0xffff);
+                fouropixels[1] = ((fouripixels<<8) & 0xff000000)
+                    |	(fouripixels & 0xffff00)
+                    |	((fouripixels>>8) & 0xff);
+                fouropixels[2] = ((fouripixels<<16) & 0xffff0000)
+                    |	((fouripixels<<8) & 0xff00)
+                    |	(fouripixels & 0xff);
 #ifdef __BIG_ENDIAN__
-		*olineptrs[0]++ = fouropixels[0];
-		*olineptrs[1]++ = fouropixels[0];
-		*olineptrs[2]++ = fouropixels[0];
-		*olineptrs[0]++ = fouropixels[1];
-		*olineptrs[1]++ = fouropixels[1];
-		*olineptrs[2]++ = fouropixels[1];
-		*olineptrs[0]++ = fouropixels[2];
-		*olineptrs[1]++ = fouropixels[2];
-		*olineptrs[2]++ = fouropixels[2];
+                *olineptrs[0]++ = fouropixels[0];
+                *olineptrs[1]++ = fouropixels[0];
+                *olineptrs[2]++ = fouropixels[0];
+                *olineptrs[0]++ = fouropixels[1];
+                *olineptrs[1]++ = fouropixels[1];
+                *olineptrs[2]++ = fouropixels[1];
+                *olineptrs[0]++ = fouropixels[2];
+                *olineptrs[1]++ = fouropixels[2];
+                *olineptrs[2]++ = fouropixels[2];
 #else
-		*olineptrs[0]++ = fouropixels[2];
-		*olineptrs[1]++ = fouropixels[2];
-		*olineptrs[2]++ = fouropixels[2];
-		*olineptrs[0]++ = fouropixels[1];
-		*olineptrs[1]++ = fouropixels[1];
-		*olineptrs[2]++ = fouropixels[1];
-		*olineptrs[0]++ = fouropixels[0];
-		*olineptrs[1]++ = fouropixels[0];
-		*olineptrs[2]++ = fouropixels[0];
+                *olineptrs[0]++ = fouropixels[2];
+                *olineptrs[1]++ = fouropixels[2];
+                *olineptrs[2]++ = fouropixels[2];
+                *olineptrs[0]++ = fouropixels[1];
+                *olineptrs[1]++ = fouropixels[1];
+                *olineptrs[2]++ = fouropixels[1];
+                *olineptrs[0]++ = fouropixels[0];
+                *olineptrs[1]++ = fouropixels[0];
+                *olineptrs[2]++ = fouropixels[0];
 #endif
-	    } while (x-=4);
-	    olineptrs[0] += 2*X_width/4;
-	    olineptrs[1] += 2*X_width/4;
-	    olineptrs[2] += 2*X_width/4;
-	}
+            } while (x-=4);
+            olineptrs[0] += 2*X_width/4;
+            olineptrs[1] += 2*X_width/4;
+            olineptrs[2] += 2*X_width/4;
+        }
 
     }
     else if (multiply == 4)
     {
-	// Broken. Gotta fix this some day.
-	void Expand4(unsigned *, double *);
-  	Expand4 ((unsigned *)(screens[0]), (double *) (image->data));
+        // Broken. Gotta fix this some day.
+        void Expand4(unsigned *, double *);
+        Expand4 ((unsigned *)(screens[0]), (double *) (image->data));
     }
 
     if (doShm)
     {
 
-	if (!XShmPutImage(	X_display,
-				X_mainWindow,
-				X_gc,
-				image,
-				0, 0,
-				0, 0,
-				X_width, X_height,
-				True ))
-	    I_Error("XShmPutImage() failed\n");
+        if (!XShmPutImage(	X_display,
+                    X_mainWindow,
+                    X_gc,
+                    image,
+                    0, 0,
+                    0, 0,
+                    X_width, X_height,
+                    True ))
+            I_Error("XShmPutImage() failed\n");
 
-	// wait for it to finish and processes all input events
-	shmFinished = false;
-	do
-	{
-	    I_GetEvent();
-	} while (!shmFinished);
+        // wait for it to finish and processes all input events
+        shmFinished = false;
+        do
+        {
+            I_GetEvent();
+        } while (!shmFinished);
 
     }
     else
     {
 
-	// draw the image
-	XPutImage(	X_display,
-			X_mainWindow,
-			X_gc,
-			image,
-			0, 0,
-			0, 0,
-			X_width, X_height );
+        // draw the image
+        XPutImage(	X_display,
+                X_mainWindow,
+                X_gc,
+                image,
+                0, 0,
+                0, 0,
+                X_width, X_height );
 
-	// sync up with server
-	XSync(X_display, False);
+        // sync up with server
+        XSync(X_display, False);
 
     }
 
@@ -681,7 +678,7 @@ void grabsharedmemory(int size)
     }	
   
   X_shminfo.shmid = id;
-  
+
   // attach to the shared memory segment
   image->data = X_shminfo.shmaddr = shmat(id, 0, 0);
   
@@ -730,9 +727,9 @@ void I_InitGraphics(void)
 
     // check for command-line display name
     if ( (pnum=M_CheckParm("-disp")) ) // suggest parentheses around assignment
-	displayname = myargv[pnum+1];
+        displayname = myargv[pnum+1];
     else
-	displayname = 0;
+        displayname = 0;
 
     // check if the user wants to grab the mouse (quite unnice)
     grabMouse = !!M_CheckParm("-grabmouse");
@@ -760,16 +757,21 @@ void I_InitGraphics(void)
     X_display = XOpenDisplay(displayname);
     if (!X_display)
     {
-	if (displayname)
-	    I_Error("Could not open display [%s]", displayname);
-	else
-	    I_Error("Could not open display (DISPLAY=[%s])", getenv("DISPLAY"));
+        if (displayname == "(null)")
+            I_Error("Could not open display [%s]", displayname);
+        else
+            I_Error("Could not open display (DISPLAY=[%s])", getenv("DISPLAY"));
     }
 
     // use the default visual 
-    X_screen = DefaultScreen(X_display);
-    /*if (!XMatchVisualInfo(X_display, X_screen, 8, PseudoColor, &X_visualinfo))*/
-	/*I_Error("xdoom currently only supports 256-color PseudoColor screens");*/
+    X_screen    = DefaultScreenOfDisplay(X_display);
+    X_screen_id = DefaultScreen(X_display);
+
+    XMatchVisualInfo(X_display, X_screen_id, 32, TrueColor, &X_visualinfo);
+
+    /*if ()*/
+        /*I_Error("xdoom currently only supports 256-color PseudoColor screens");*/
+
     X_visual = X_visualinfo.visual;
 
     // check for the MITSHM extension
@@ -778,140 +780,135 @@ void I_InitGraphics(void)
     // even if it's available, make sure it's a local connection
     if (doShm)
     {
-	if (!displayname) displayname = (char *) getenv("DISPLAY");
-	if (displayname)
-	{
-	    d = displayname;
-	    while (*d && (*d != ':')) d++;
-	    if (*d) *d = 0;
-	    if (!(!strcasecmp(displayname, "unix") || !*displayname)) doShm = false;
-	}
+        if (!displayname) displayname = (char *) getenv("DISPLAY");
+        if (displayname)
+        {
+            d = displayname;
+            while (*d && (*d != ':')) d++;
+            if (*d) *d = 0;
+            if (!(!strcasecmp(displayname, "unix") || !*displayname)) doShm = false;
+        }
     }
 
     fprintf(stderr, "Using MITSHM extension\n");
 
-    // create the colormap
-    X_cmap = XCreateColormap(X_display, RootWindow(X_display,
-						   X_screen), X_visual, AllocAll);
-
     // setup attributes for main window
-    attribmask = CWEventMask | CWColormap | CWBorderPixel;
-    attribs.event_mask =
-	KeyPressMask
-	| KeyReleaseMask
-	// | PointerMotionMask | ButtonPressMask | ButtonReleaseMask
-	| ExposureMask;
-
-    attribs.colormap = X_cmap;
-    attribs.border_pixel = 0;
+    attribmask = CWBackPixel | CWColormap | CWBorderPixel | CWEventMask;
+    attribs.border_pixel = BlackPixel(X_display, X_screen_id);
+    attribs.background_pixel = WhitePixel(X_display, X_screen_id);
+    attribs.override_redirect = true;
+    attribs.colormap = XCreateColormap(X_display, RootWindow(X_display, X_screen_id), X_visual, AllocNone);
+    attribs.event_mask = ExposureMask;
 
     // create the main window
-    X_mainWindow = XCreateWindow(	X_display,
-					RootWindow(X_display, X_screen),
-					x, y,
-					X_width, X_height,
-					0, // borderwidth
-					8, // depth
-					InputOutput,
-					X_visual,
-					attribmask,
-					&attribs );
+    X_mainWindow = XCreateWindow(
+            X_display, 
+            RootWindow(X_display, X_screen_id), 
+            x, 
+            y, 
+            X_width, 
+            X_height, 
+            0, 
+            X_visualinfo.depth, 
+            InputOutput, 
+            X_visual,
+            attribmask, 
+            &attribs 
+            );
 
     XDefineCursor(X_display, X_mainWindow,
-		  createnullcursor( X_display, X_mainWindow ) );
+          createnullcursor( X_display, X_mainWindow ) );
 
     // create the GC
     valuemask = GCGraphicsExposures;
     xgcvalues.graphics_exposures = False;
     X_gc = XCreateGC(	X_display,
-  			X_mainWindow,
-  			valuemask,
-  			&xgcvalues );
+              X_mainWindow,
+              valuemask,
+              &xgcvalues );
 
     // map the window
     XMapWindow(X_display, X_mainWindow);
+
+    XClearWindow(X_display, X_mainWindow);
 
     // wait until it is OK to draw
     oktodraw = 0;
     while (!oktodraw)
     {
-	XNextEvent(X_display, &X_event);
-	if (X_event.type == Expose
-	    && !X_event.xexpose.count)
-	{
-	    oktodraw = 1;
-	}
+        XNextEvent(X_display, &X_event);
+        if (X_event.type == Expose
+            && !X_event.xexpose.count)
+        {
+            oktodraw = 1;
+        }
     }
 
     // grabs the pointer so it is restricted to this window
     if (grabMouse)
-	XGrabPointer(X_display, X_mainWindow, True,
+        XGrabPointer(X_display, X_mainWindow, True,
 		     ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
 		     GrabModeAsync, GrabModeAsync,
 		     X_mainWindow, None, CurrentTime);
 
-    if (doShm)
-    {
+    if (doShm) {
+        X_shmeventtype = XShmGetEventBase(X_display) + ShmCompletion;
 
-	X_shmeventtype = XShmGetEventBase(X_display) + ShmCompletion;
+        // create the image
+        image = XShmCreateImage(
+                X_display,
+                X_visual,
+                X_visualinfo.depth,
+                ZPixmap,
+                0,
+                &X_shminfo,
+                X_width,
+                X_height);
 
-	// create the image
-	image = XShmCreateImage(	X_display,
-					X_visual,
-					8,
-					ZPixmap,
-					0,
-					&X_shminfo,
-					X_width,
-					X_height );
+        grabsharedmemory(image->bytes_per_line * image->height);
 
-	grabsharedmemory(image->bytes_per_line * image->height);
+        // UNUSED
+        // create the shared memory segment
+        /*X_shminfo.shmid = shmget (IPC_PRIVATE,*/
+                /*image->bytes_per_line * image->height, IPC_CREAT | 0777);*/
+        /*if (X_shminfo.shmid < 0)*/
+        /*{*/
+            /*perror("");*/
+            /*I_Error("shmget() failed in InitGraphics()");*/
+        /*}*/
+        /*fprintf(stderr, "shared memory id=%d\n", X_shminfo.shmid);*/
+        /*// attach to the shared memory segment*/
+        /*image->data = X_shminfo.shmaddr = shmat(X_shminfo.shmid, 0, 0);*/
 
 
-	// UNUSED
-	// create the shared memory segment
-	// X_shminfo.shmid = shmget (IPC_PRIVATE,
-	// image->bytes_per_line * image->height, IPC_CREAT | 0777);
-	// if (X_shminfo.shmid < 0)
-	// {
-	// perror("");
-	// I_Error("shmget() failed in InitGraphics()");
-	// }
-	// fprintf(stderr, "shared memory id=%d\n", X_shminfo.shmid);
-	// attach to the shared memory segment
-	// image->data = X_shminfo.shmaddr = shmat(X_shminfo.shmid, 0, 0);
-	
+        if (!image->data)
+        {
+            perror("");
+            I_Error("shmat() failed in InitGraphics()");
+        }
 
-	if (!image->data)
-	{
-	    perror("");
-	    I_Error("shmat() failed in InitGraphics()");
-	}
+        // get the X server to attach to it
+        if (!XShmAttach(X_display, &X_shminfo))
+            I_Error("XShmAttach() failed in InitGraphics()");
 
-	// get the X server to attach to it
-	if (!XShmAttach(X_display, &X_shminfo))
-	    I_Error("XShmAttach() failed in InitGraphics()");
-
-    }
-    else
-    {
-	image = XCreateImage(	X_display,
-    				X_visual,
-    				8,
-    				ZPixmap,
-    				0,
-    				(char*)malloc(X_width * X_height),
-    				X_width, X_height,
-    				8,
-    				X_width );
-
+    } else {
+        image = XCreateImage(	
+                X_display,
+                X_visual,
+                X_visualinfo.depth,
+                ZPixmap,
+                0,
+                (char*)malloc(X_width * X_height),
+                X_width, X_height,
+                8,
+                X_width
+                );
     }
 
     if (multiply == 1)
-	screens[0] = (unsigned char *) (image->data);
+        screens[0] = (unsigned char *) (image->data);
     else
-	screens[0] = (unsigned char *) malloc (SCREENWIDTH * SCREENHEIGHT);
-
+        screens[0] = (unsigned char *) malloc (SCREENWIDTH * SCREENHEIGHT);
 }
 
 
