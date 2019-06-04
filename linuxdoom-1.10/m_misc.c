@@ -517,8 +517,8 @@ void M_ScreenShot (void)
     {
 	lbmname[4] = i/10 + '0';
 	lbmname[5] = i%10 + '0';
-	if (access(lbmname,0) == -1)
-	    break;	// file doesn't exist
+	/*if (access(lbmname,0) == -1)*/
+		/*break;	// file doesn't exist*/
     }
     if (i==100)
 	I_Error ("M_ScreenShot: Couldn't create a PCX");

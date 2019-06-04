@@ -26,7 +26,6 @@ static const char
 rcsid[] = "$Id: w_wad.c,v 1.5 1997/02/03 16:47:57 b1 Exp $";
 
 
-#ifdef NORMALUNIX
 #include <ctype.h>
 #include <sys/types.h>
 #include <string.h>
@@ -36,7 +35,6 @@ rcsid[] = "$Id: w_wad.c,v 1.5 1997/02/03 16:47:57 b1 Exp $";
 #include <sys/stat.h>
 #include <alloca.h>
 #define O_BINARY		0
-#endif
 
 #include "doomtype.h"
 #include "m_swap.h"
@@ -65,11 +63,6 @@ void**			lumpcache;
 
 
 #define strcmpi	strcasecmp
-
-void strupr (char* s)
-{
-    while (*s) { *s = toupper(*s); s++; }
-}
 
 int filelength (int handle) 
 { 
@@ -160,11 +153,11 @@ void W_AddFile (char *filename)
 	reloadlump = numlumps;
     }
 		
-    if ( (handle = open (filename,O_RDONLY | O_BINARY)) == -1)
-    {
-	printf (" couldn't open %s\n",filename);
-	return;
-    }
+    /*if ( (handle = open (filename,O_RDONLY | O_BINARY)) == -1)*/
+    /*{*/
+	/*printf (" couldn't open %s\n",filename);*/
+	/*return;*/
+    /*}*/
 
     printf (" adding %s\n",filename);
     startlump = numlumps;
@@ -246,8 +239,8 @@ void W_Reload (void)
     if (!reloadname)
 	return;
 		
-    if ( (handle = open (reloadname,O_RDONLY | O_BINARY)) == -1)
-	I_Error ("W_Reload: couldn't open %s",reloadname);
+    /*if ( (handle = open (reloadname,O_RDONLY | O_BINARY)) == -1)*/
+	/*I_Error ("W_Reload: couldn't open %s",reloadname);*/
 
     read (handle, &header, sizeof(header));
     lumpcount = LONG(header.numlumps);
@@ -444,14 +437,14 @@ W_ReadLump
 	
     // ??? I_BeginRead ();
 	
-    if (l->handle == -1)
-    {
-	// reloadable file, so use open / read / close
-	if ( (handle = open (reloadname,O_RDONLY | O_BINARY)) == -1)
-	    I_Error ("W_ReadLump: couldn't open %s",reloadname);
-    }
-    else
-	handle = l->handle;
+    /*if (l->handle == -1)*/
+    /*{*/
+	/*// reloadable file, so use open / read / close*/
+	/*if ( (handle = open (reloadname,O_RDONLY | O_BINARY)) == -1)*/
+		/*I_Error ("W_ReadLump: couldn't open %s",reloadname);*/
+    /*}*/
+    /*else*/
+	/*handle = l->handle;*/
 		
     lseek (handle, l->position, SEEK_SET);
     c = read (handle, dest, l->size);

@@ -4,11 +4,11 @@
 #
 # $Log:$
 #
-CC=gcc  # gcc or g++
+CC=saturn-sh2-gcc
 
-CFLAGS=-g -Wall -DNORMALUNIX -DLINUX
+CFLAGS=-g
 LDFLAGS=
-LIBS=-lXext -lX11 -lm
+LIBS=-lm
 
 # subdirectory for objects
 O=linux

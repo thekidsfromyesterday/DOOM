@@ -34,16 +34,16 @@ rcsid[] = "$Id: i_unix.c,v 1.5 1997/02/03 22:45:10 b1 Exp $";
 #include <sys/time.h>
 #include <sys/types.h>
 
-#ifndef LINUX
-#include <sys/filio.h>
-#endif
+/*#ifndef LINUX*/
+/*#include <sys/filio.h>*/
+/*#endif*/
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
+/*#include <sys/ioctl.h>*/
 
 // Linux voxware output.
-#include <linux/soundcard.h>
+/*#include <linux/soundcard.h>*/
 
 // Timer stuff. Experimental.
 #include <time.h>
@@ -163,9 +163,9 @@ myioctl
   int	command,
   int*	arg )
 {   
-    int		rc;
+    int		rc = 0;
     
-    rc = ioctl(fd, command, arg);  
+    /*rc = ioctl(fd, command, arg);  */
     if (rc < 0)
     {
 	fprintf(stderr, "ioctl(dsp,%d,arg) failed\n", command);
@@ -748,12 +748,12 @@ I_InitSound()
     sprintf(buffer, "%s", sndserver_filename);
   
   // start sound process
-  if ( !access(buffer, X_OK) )
-  {
-    strcat(buffer, " -quiet");
-    sndserver = popen(buffer, "w");
-  }
-  else
+  /*if ( !access(buffer, X_OK) )*/
+  /*{*/
+    /*strcat(buffer, " -quiet");*/
+    /*sndserver = popen(buffer, "w");*/
+  /*}*/
+  /*else*/
     fprintf(stderr, "Could not start sound server [%s]\n", buffer);
 #else
     
@@ -956,9 +956,9 @@ int I_SoundSetTimer( int duration_of_tick )
 #ifndef sun    
   //ac	t.sa_mask = _sig;
 #endif
-  act.sa_flags = SA_RESTART;
+  /*act.sa_flags = SA_RESTART;*/
   
-  sigaction( sig, &act, &oact );
+  /*sigaction( sig, &act, &oact );*/
 
   value.it_interval.tv_sec    = 0;
   value.it_interval.tv_usec   = duration_of_tick;
@@ -966,7 +966,7 @@ int I_SoundSetTimer( int duration_of_tick )
   value.it_value.tv_usec      = duration_of_tick;
 
   // Error is -1.
-  res = setitimer( itimer, &value, &ovalue );
+  /*res = setitimer( itimer, &value, &ovalue );*/
 
   // Debug.
   if ( res == -1 )
